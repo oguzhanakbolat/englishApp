@@ -1,0 +1,39 @@
+{
+  "common": {
+    "ok": "Tamam",
+    "cancel": "İptal",
+    "save": "Kaydet",
+    "continue": "Devam Et",
+    "back": "Geri",
+    "loading": "Yükleniyor...",
+    "error": "Hata",
+    "success": "Başarılı",
+    "unexpectedError": "Beklenmeyen bir hata oluştu"
+  },
+  "auth": {
+    "login": {
+      "title": "Giriş Yapın",
+      "text": "Giriş yapmak için e-posta adresinizi ve şifrenizi giriniz.",
+      "email": "Email",
+      "emailPlaceholder": "ornek@email.com",
+      "password": "Şifre",
+      "passwordPlaceholder": "••••••••",
+      "rememberMe": "Beni hatırla",
+      "forgotPassword": "Şifremi unuttum?",
+      "submit": "Giriş Yap",
+      "noAccount": "Hesabınız yok mu?",
+      "register": "Kayıt olun"
+    },
+    "validation": {
+      "emailInvalid": "Geçerli bir e-posta adresi giriniz",
+      "emailRequired": "E-posta adresi zorunludur",
+      "passwordMin": "Şifre en az {{count}} karakter olmalıdır",
+      "passwordRequired": "Şifre zorunludur"
+    }
+  },
+  "language": {
+    "tr": "Türkçe",
+    "en": "İngilizce",
+    "de": "Almanca"
+  }
+}

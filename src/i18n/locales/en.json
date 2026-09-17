@@ -1,0 +1,39 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "save": "Save",
+    "continue": "Continue",
+    "back": "Back",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "unexpectedError": "An unexpected error occurred"
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "text": "Sign in to your account to continue.",
+      "email": "Email",
+      "emailPlaceholder": "example@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "••••••••",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "register": "Sign up"
+    },
+    "validation": {
+      "emailInvalid": "Please enter a valid email address",
+      "emailRequired": "Email address is required",
+      "passwordMin": "Password must be at least {{count}} characters",
+      "passwordRequired": "Password is required"
+    }
+  },
+  "language": {
+    "tr": "Turkish",
+    "en": "English",
+    "de": "German"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "common": {
+    "ok": "OK",
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "continue": "Weiter",
+    "back": "Zurück",
+    "loading": "Wird geladen...",
+    "error": "Fehler",
+    "success": "Erfolg",
+    "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten"
+  },
+  "auth": {
+    "login": {
+      "title": "Anmelden",
+      "email": "E-Mail",
+      "emailPlaceholder": "beispiel@email.com",
+      "password": "Passwort",
+      "passwordPlaceholder": "••••••••",
+      "rememberMe": "Angemeldet bleiben",
+      "forgotPassword": "Passwort vergessen?",
+      "submit": "Anmelden",
+      "noAccount": "Noch kein Konto?",
+      "register": "Registrieren"
+    },
+    "validation": {
+      "emailInvalid": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
+      "emailRequired": "E-Mail-Adresse ist erforderlich",
+      "passwordMin": "Das Passwort muss mindestens {{count}} Zeichen lang sein",
+      "passwordRequired": "Passwort ist erforderlich"
+    }
+  },
+  "language": {
+    "tr": "Türkisch",
+    "en": "Englisch",
+    "de": "Deutsch"
+  }
+}
