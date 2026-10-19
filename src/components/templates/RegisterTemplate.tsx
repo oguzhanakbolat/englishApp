@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { useFormik } from "formik";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -63,13 +63,13 @@ const RegisterTemplate = () => {
         username: values.username,
         password: values.password,
       });
-      if (response.success) {
+      if (response.status === 200) {
         await login({
           user: response.data.user as UserType,
           token: response.data.jwt as string,
         });
       } else {
-        Toast.error(response.error as string);
+        Toast.error(response.data.message as string);
       }
       setIsLoading(false);
     },

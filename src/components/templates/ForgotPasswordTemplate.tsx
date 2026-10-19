@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFormik } from "formik";
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -40,13 +40,13 @@ const ForgotPasswordTemplate = () => {
       setIsLoading(true);
       const response = await forgotPasswordService(values.email);
 
-      if (response.success) {
+      if (response.status === 200) {
         Toast.success(
           "Şifremi sıfırlama için e-posta adresinize bir kod gönderildi",
         );
         router.push("/(auth)/resetpassword");
       } else {
-        Toast.error(response.error as string);
+        Toast.error(response.data.message as string);
       }
 
       setIsLoading(false);

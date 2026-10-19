@@ -1,17 +1,23 @@
 import { useTheme } from "@/hooks/use-theme";
-import React, { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { Dimensions, Insets, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Header from "../molecules/Header";
+import Empty from "../organisms/Empty";
+import Loading from "../organisms/Loading";
 
 const { width } = Dimensions.get("window");
 
 const Scroll = ({
   children,
   title,
+  isLoading = false,
+  isEmpty = false,
 }: {
   children: ReactNode;
   title: string;
+  isLoading?: boolean;
+  isEmpty?: boolean;
 }) => {
   const inset = useSafeAreaInsets();
   const theme = useTheme();
@@ -20,9 +26,15 @@ const Scroll = ({
   return (
     <>
       <Header title={title} />
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.container}>{children}</View>
-      </ScrollView>
+      {isLoading ? (
+        <Loading />
+      ) : isEmpty ? (
+        <Empty />
+      ) : (
+        <ScrollView style={styles.scrollView}>
+          <View style={styles.container}>{children}</View>
+        </ScrollView>
+      )}
     </>
   );
 };
@@ -33,9 +45,11 @@ const createStyles = (theme: ReturnType<typeof useTheme>, inset: Insets) =>
   StyleSheet.create({
     scrollView: {
       backgroundColor: theme.background,
+      flex: 1,
     },
     container: {
-      width,
+      flex: 1,
+      width: "100%",
       paddingHorizontal: 16,
       alignItems: "center",
       paddingTop: 16,

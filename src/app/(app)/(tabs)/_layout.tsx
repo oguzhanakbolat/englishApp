@@ -1,6 +1,5 @@
 import AppTabs from "@/components/organisms/AppTabs";
 import { Tabs } from "expo-router";
-import React from "react";
 
 export default function TabsLayout() {
   return (
@@ -10,9 +9,11 @@ export default function TabsLayout() {
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" options={{ title: "Home" }} />
-      <Tabs.Screen name="Lesson" options={{ title: "Lesson" }} />
+      <Tabs.Screen name="lesson" options={{ title: "Lesson" }} />
       <Tabs.Screen name="personal" options={{ title: "Personal" }} />
-      <Tabs.Screen name="product" options={{ title: "Product" }} />
+      <Tabs.Screen name="statistic" options={{ title: "Statistic" }} />
+      <Tabs.Screen name="cource/[id]" options={{ href: null }} />
+      <Tabs.Screen name="level/[id]" options={{ href: null }} />
     </Tabs>
   );
 }

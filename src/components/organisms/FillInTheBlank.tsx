@@ -1,6 +1,7 @@
 import { Fonts } from "@/constants/fonts";
-import { ExerciseType, QuestionType } from "@/data";
 import { useTheme } from "@/hooks/use-theme";
+import { useUserStore } from "@/stores/useUserStore";
+import { ExerciseType, QuestionType, UserType } from "@/types";
 import pointCalculator, { PointCalculatorType } from "@/utils/pointCalculator";
 import { AudioPlayer, useAudioPlayer } from "expo-audio";
 import { useRouter } from "expo-router";
@@ -15,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Point from "./Point";
+import ProgressBar from "./ProgressBar";
 
 const width = Dimensions.get("window").width;
 
@@ -33,6 +35,7 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme, inset), [theme, inset]);
   const router = useRouter();
+  const { user } = useUserStore();
   const [newExercise, setNewExercise] = useState<ExerciseType | null>(
     {} as ExerciseType,
   );
@@ -44,7 +47,7 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
   const [points, setPoints] = useState<PointCalculatorType | null>(null);
   const [answer, setAnswer] = useState<any>();
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-
+  const [isLoading, setIsLoading] = useState(false);
   const correctAudio = useAudioPlayer(require("@/constants/correct.mp3"));
   const wrongAudio = useAudioPlayer(require("@/constants/wrong.mp3"));
 
@@ -81,6 +84,8 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
   };
 
   const handleAnswer = (answer: string, answerText: string) => {
+    if (isLoading) return;
+    setIsLoading(true);
     if (answer === newExercise?.questions?.[active]?.isCorrect) {
       const newAnswer = {
         id: newExercise?.questions?.[active]?.id,
@@ -130,6 +135,7 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
 
     const t2 = setTimeout(() => {
       if (!isMountedRef.current) return;
+      setIsLoading(false);
       next();
     }, 3000);
 
@@ -138,8 +144,12 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
 
   const next = () => {
     if (active === (newExercise?.questions?.length ?? 0) - 1) {
-      setPoints(pointCalculator(newExercise as ExerciseType, active));
-      setFinished(true);
+      setPoints(
+        pointCalculator(answer, level, lesson, exercise.id, user as UserType),
+      );
+      setTimeout(() => {
+        setFinished(true);
+      }, 100);
     } else {
       const activeIndex = active + 1;
       setActive(activeIndex);
@@ -167,7 +177,7 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
     setCorrect(null);
     setError(null);
     setActive(0);
-    router.push(`/level/${level}`);
+    router.push(`/cource/${level}-${lesson}`);
   };
 
   useEffect(() => {
@@ -177,11 +187,15 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
   return (
     <View style={styles.container}>
       <View style={styles.content}>
+        <ProgressBar
+          active={active}
+          questions={newExercise?.questions?.length ?? 0}
+        />
         <Text style={styles.descriptionText}>{exercise?.description}</Text>
 
         <View style={styles.questionContainer}>
           <Text style={styles.questionText}>
-            {newExercise?.questions?.[active].question[0]}
+            {newExercise?.questions?.[active]?.question?.[0]}
             {selectedAnswer ? (
               <Text style={styles.selectedAnswerText}>
                 {" " + selectedAnswer + " "}{" "}
@@ -189,7 +203,7 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
             ) : (
               " ........... "
             )}
-            {newExercise?.questions?.[active].question[1]}
+            {newExercise?.questions?.[active]?.question?.[1]}
           </Text>
         </View>
 
@@ -269,9 +283,10 @@ const FillInTheBlank: FC<FillInTheBlankType> = ({
       </View>
       <Point
         visible={finished}
-        points={points ?? { points: 0, totalPoints: 0, percentage: 0 }}
+        points={points ?? { points: 0, percentage: 0 }}
         onBack={handleBack}
         onNext={handleNext}
+        type="exercises"
       />
     </View>
   );
@@ -314,6 +329,7 @@ const createStyles = (theme: ReturnType<typeof useTheme>, inset: Insets) =>
       color: theme.text,
       paddingVertical: 16,
       paddingHorizontal: 12,
+      textAlign: "center",
     },
     descriptionText: {
       ...Fonts.S14W400,
@@ -324,7 +340,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>, inset: Insets) =>
       marginTop: 32,
       marginBottom: 32,
       justifyContent: "center",
+      alignItems: "center",
       minHeight: 56,
+      width: "100%",
+      backgroundColor: theme.primary_30,
     },
     buttonContainer: {
       flexDirection: "row",

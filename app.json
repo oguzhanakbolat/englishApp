@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "English",
-    "slug": "english",
+    "name": "Easy English",
+    "slug": "easyenglish",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "english",
+    "scheme": "easyenglish",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon",
-      "bundleIdentifier": "com.oguzhan.english",
+      "bundleIdentifier": "com.easyenglish",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSMicrophoneUsageDescription": "Cümleleri tekrar edebilmen için mikrofona ihtiyacımız var.",
+        "NSSpeechRecognitionUsageDescription": "Söylediğin cümleyi kontrol edebilmek için konuşma tanıma kullanıyoruz."
       }
     },
     "android": {
@@ -21,13 +23,19 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "package": "com.oguzhan.english",
+      "package": "com.easyenglish",
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -55,11 +63,32 @@
       "expo-image",
       "expo-web-browser",
       "expo-audio",
-      "expo-status-bar"
+      "expo-status-bar",
+      "expo-build-properties",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Cümleleri tekrar edebilmen için mikrofona ihtiyacımız var.",
+          "speechRecognitionPermission": "Söylediğin cümleyi kontrol edebilmek için konuşma tanıma kullanıyoruz."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b05f6998-00ca-47a6-a624-590b86634c78"
+      }
+    },
+    "owner": "oguzhan",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/b05f6998-00ca-47a6-a624-590b86634c78"
     }
   }
 }

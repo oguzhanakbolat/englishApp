@@ -1,5 +1,5 @@
 import { useTheme } from "@/hooks/use-theme";
-import React, { ReactNode, useMemo } from "react";
+import { ReactNode, useMemo } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Header from "../molecules/Header";
@@ -10,10 +10,12 @@ const Container = ({
   children,
   title,
   haveBottom = true,
+  onBackControl,
 }: {
   children: ReactNode;
   title: string;
   haveBottom?: boolean;
+  onBackControl?: () => void;
 }) => {
   const inset = useSafeAreaInsets();
   const theme = useTheme();
@@ -28,7 +30,7 @@ const Container = ({
 
   return (
     <>
-      <Header title={title} />
+      <Header title={title} onBackControl={onBackControl} />
       <View style={styles.container}>{children}</View>
     </>
   );

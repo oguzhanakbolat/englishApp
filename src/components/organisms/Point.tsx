@@ -1,6 +1,8 @@
 import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import { PointCalculatorType } from "@/utils/pointCalculator";
+import { Image } from "expo-image";
+import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import {
   Dimensions,
@@ -21,54 +23,79 @@ const Point = ({
   points,
   onBack,
   onNext,
+  type,
 }: {
   visible: boolean;
   points: PointCalculatorType;
   onBack: () => void;
   onNext: () => void;
+  type: "words" | "exercises" | "patterns";
 }) => {
   const theme = useTheme();
   const inset = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme, inset), [theme, inset]);
+  const router = useRouter();
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
       <View style={styles.container}>
         <View style={styles.content}>
-          {points.percentage > 60 ? (
-            <>
-              <AnimatedIcons color={theme.success} size={180} icon="check" />
-              <Text style={styles.text}>Toplam Puan: {points.points}</Text>
-              <Text style={styles.text}>
-                %{points.percentage.toFixed(2)} Başarı
-              </Text>
+          <View style={styles.rowContainer}>
+            {points.percentage >= 60 ? (
+              <View style={styles.contentLeftSide}>
+                <AnimatedIcons color={theme.success} size={100} icon="check" />
+                <Text style={[styles.text, { marginTop: 32 }]}>
+                  Toplam Puan: {points.points}
+                </Text>
+                <Text style={styles.text}>
+                  %{points.percentage.toFixed(2)} Başarı
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.contentLeftSide}>
+                <AnimatedIcons color={theme.danger} size={100} icon="close" />
+                <Text style={[styles.textDanger, { marginTop: 32 }]}>
+                  Toplam Puan: {points.points}
+                </Text>
+                <Text style={styles.textDanger}>
+                  %{points.percentage.toFixed(2)} Başarı
+                </Text>
+              </View>
+            )}
 
-              <View style={styles.buttonContainer}>
+            <View style={styles.contentRightSide}>
+              <Image
+                source={
+                  points.percentage >= 60
+                    ? require("@/constants/images/4.png")
+                    : require("@/constants/images/2.png")
+                }
+                style={styles.image}
+                contentFit="contain"
+              />
+            </View>
+          </View>
+          <View style={styles.buttonContainer}>
+            {type === "words" ? (
+              <TouchableOpacity
+                style={styles.buttonBack}
+                onPress={() => router.back()}
+              >
+                <Text style={styles.buttonBackText}>Tamam</Text>
+              </TouchableOpacity>
+            ) : (
+              <>
                 <TouchableOpacity style={styles.buttonBack} onPress={onBack}>
                   <Text style={styles.buttonBackText}>Tekrar Dene</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.buttonNext} onPress={onNext}>
-                  <Text style={styles.buttonNextText}>Sonraki Egzersiz</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <>
-              <AnimatedIcons color={theme.danger} size={180} icon="close" />
-              <Text style={styles.textDanger}>
-                Toplam Puan: {points.points}
-              </Text>
-              <Text style={styles.textDanger}>
-                %{points.percentage.toFixed(2)} Başarı
-              </Text>
-
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.buttonBack} onPress={onBack}>
-                  <Text style={styles.buttonBackText}>Tekrar Dene</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+                {points.percentage >= 60 && (
+                  <TouchableOpacity style={styles.buttonNext} onPress={onNext}>
+                    <Text style={styles.buttonNextText}>Sonraki Egzersiz</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+          </View>
         </View>
       </View>
     </Modal>
@@ -94,15 +121,33 @@ const createStyles = (theme: ReturnType<typeof useTheme>, inset: Insets) =>
       borderRadius: 16,
       padding: 16,
     },
+    rowContainer: {
+      flexDirection: "row",
+      gap: 16,
+      justifyContent: "flex-end",
+      alignItems: "flex-end",
+    },
+    image: {
+      width: "100%",
+      height: "100%",
+    },
+    contentLeftSide: {
+      flex: 1,
+      justifyContent: "center",
+      alignItems: "center",
+      gap: 8,
+    },
     text: {
-      ...Fonts.S18W600,
+      ...Fonts.S16W600,
       color: theme.success,
       textAlign: "center",
+      marginBottom: 8,
     },
     textDanger: {
-      ...Fonts.S18W600,
+      ...Fonts.S16W600,
       color: theme.danger,
       textAlign: "center",
+      marginBottom: 8,
     },
     buttonContainer: {
       flexDirection: "row",
@@ -137,5 +182,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>, inset: Insets) =>
       ...Fonts.S14W400,
       color: theme.text,
       textAlign: "center",
+    },
+    contentRightSide: {
+      width: 136,
+      height: 250,
+      marginRight: 16,
     },
   });

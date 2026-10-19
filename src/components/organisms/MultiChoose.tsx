@@ -1,6 +1,7 @@
 import { Fonts } from "@/constants/fonts";
-import { ExerciseType, QuestionType } from "@/data";
 import { useTheme } from "@/hooks/use-theme";
+import { useUserStore } from "@/stores/useUserStore";
+import { AnswerType, ExerciseType, UserType } from "@/types";
 import pointCalculator, { PointCalculatorType } from "@/utils/pointCalculator";
 import { AudioPlayer, useAudioPlayer } from "expo-audio";
 import { useRouter } from "expo-router";
@@ -15,6 +16,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Point from "./Point";
+import ProgressBar from "./ProgressBar";
 
 const width = Dimensions.get("window").width;
 
@@ -24,13 +26,20 @@ type MultiChooseType = {
   lesson: number;
 };
 
+const cloneExercise = (source: ExerciseType): ExerciseType => ({
+  ...source,
+  questions: source.questions?.map((question) => ({ ...question })),
+  text: source.text?.map((item) => ({ ...item })),
+});
+
 const MultiChoose: FC<MultiChooseType> = ({ exercise, level, lesson }) => {
   const inset = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme, inset), [theme, inset]);
+  const { user } = useUserStore();
   const router = useRouter();
-  const [newExercise, setNewExercise] = useState<ExerciseType | null>(
-    {} as ExerciseType,
+  const [newExercise, setNewExercise] = useState<ExerciseType>(() =>
+    cloneExercise(exercise),
   );
   const [selected, setSelected] = useState<string | null>();
   const [correct, setCorrect] = useState<string | null>(null);
@@ -38,22 +47,14 @@ const MultiChoose: FC<MultiChooseType> = ({ exercise, level, lesson }) => {
   const [active, setActive] = useState(0);
   const [finished, setFinished] = useState(false);
   const [points, setPoints] = useState<PointCalculatorType | null>(null);
-  const [answer, setAnswer] = useState<any>();
+  const [answer, setAnswer] = useState<AnswerType[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const correctAudio = useAudioPlayer(require("@/constants/correct.mp3"));
   const wrongAudio = useAudioPlayer(require("@/constants/wrong.mp3"));
 
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const isMountedRef = useRef(true);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-      timeoutsRef.current.forEach(clearTimeout);
-      timeoutsRef.current = [];
-    };
-  }, []);
 
   const playSafely = async (player: AudioPlayer, label: string) => {
     try {
@@ -72,28 +73,21 @@ const MultiChoose: FC<MultiChooseType> = ({ exercise, level, lesson }) => {
     }
   };
 
-  const handleAnswer = (answer: string) => {
-    if (answer === newExercise?.questions?.[active]?.isCorrect) {
-      const newAnswer = {
-        id: newExercise?.questions?.[active]?.id,
-        questionId: newExercise?.questions?.[active]?.id,
-        answer: answer,
-        correct: true,
-        error: false,
-      };
-      setAnswer((x: any) => [...(x ?? []), newAnswer]);
-    } else {
-      const newAnswer = {
-        id: newExercise?.questions?.[active]?.id,
-        questionId: newExercise?.questions?.[active]?.id,
-        answer: answer,
-        correct: false,
-        error: true,
-      };
-      setAnswer((x: any) => [...(x ?? []), newAnswer]);
-    }
+  const handleAnswer = (ans: string) => {
+    if (isLoading) return;
+    setIsLoading(true);
+    const newAnswer = {
+      id: answer?.length + 1,
+      questionId: newExercise?.questions?.[active]?.id,
+      answer: ans,
+      correct: ans === newExercise?.questions?.[active]?.isCorrect,
+      error: ans !== newExercise?.questions?.[active]?.isCorrect,
+    };
 
-    setSelected(answer);
+    const newAnswerList = [...(answer ?? []), newAnswer];
+
+    setAnswer(newAnswerList as AnswerType[]);
+    setSelected(ans);
     setCorrect(null);
     setError(null);
 
@@ -101,37 +95,45 @@ const MultiChoose: FC<MultiChooseType> = ({ exercise, level, lesson }) => {
       if (!isMountedRef.current) return;
       setSelected(null);
 
-      if (answer === newExercise?.questions?.[active]?.isCorrect) {
+      if (ans === newExercise?.questions?.[active]?.isCorrect) {
         playSafely(correctAudio, "correct");
-        setCorrect(answer);
+        setCorrect(ans);
         setError(null);
       } else {
         playSafely(wrongAudio, "wrong");
-        setError(answer);
+        setError(ans);
         setCorrect(newExercise?.questions?.[active]?.isCorrect ?? null);
 
         if (active !== (newExercise?.questions?.length ?? 0) - 1) {
-          const newList = { ...newExercise };
-          newList?.questions?.push(
-            newExercise?.questions?.[active] ?? ({} as QuestionType),
-          );
-          setNewExercise(newList as ExerciseType);
+          setNewExercise((prev) => {
+            const current = prev.questions?.[active];
+            if (!current) return prev;
+            return {
+              ...prev,
+              questions: [...(prev.questions ?? []), { ...current }],
+            };
+          });
         }
       }
     }, 1500);
 
     const t2 = setTimeout(() => {
       if (!isMountedRef.current) return;
-      next();
+      setIsLoading(false);
+      next(newAnswerList as AnswerType[]);
     }, 3000);
 
     timeoutsRef.current.push(t1, t2);
   };
 
-  const next = () => {
+  const next = (answer: AnswerType[]) => {
     if (active === (newExercise?.questions?.length ?? 0) - 1) {
-      setPoints(pointCalculator(newExercise as ExerciseType, active));
-      setFinished(true);
+      setPoints(
+        pointCalculator(answer, level, lesson, exercise.id, user as UserType),
+      );
+      setTimeout(() => {
+        setFinished(true);
+      }, 100);
     } else {
       const activeIndex = active + 1;
       setActive(activeIndex);
@@ -143,11 +145,12 @@ const MultiChoose: FC<MultiChooseType> = ({ exercise, level, lesson }) => {
 
   const handleBack = () => {
     setFinished(false);
+    setAnswer([]);
     setSelected(null);
     setCorrect(null);
     setError(null);
     setActive(0);
-    setNewExercise(exercise);
+    setNewExercise(cloneExercise(exercise));
   };
 
   const handleNext = () => {
@@ -156,16 +159,25 @@ const MultiChoose: FC<MultiChooseType> = ({ exercise, level, lesson }) => {
     setCorrect(null);
     setError(null);
     setActive(0);
-    router.push(`/level/${level}`);
+    router.push(`/cource/${level}-${lesson}`);
   };
 
   useEffect(() => {
-    setNewExercise(exercise);
-  }, [exercise]);
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      timeoutsRef.current.forEach(clearTimeout);
+      timeoutsRef.current = [];
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
+        <ProgressBar
+          active={active}
+          questions={newExercise?.questions?.length ?? 0}
+        />
         <Text style={styles.descriptionText}>{exercise?.description}</Text>
 
         <View style={styles.questionContainer}>
@@ -274,9 +286,10 @@ const MultiChoose: FC<MultiChooseType> = ({ exercise, level, lesson }) => {
       </View>
       <Point
         visible={finished}
-        points={points ?? { points: 0, totalPoints: 0, percentage: 0 }}
+        points={points ?? { points: 0, percentage: 0 }}
         onBack={handleBack}
         onNext={handleNext}
+        type="exercises"
       />
     </View>
   );
@@ -334,7 +347,6 @@ const createStyles = (theme: ReturnType<typeof useTheme>, inset: Insets) =>
       width: width - 76,
       height: 52,
     },
-
     answerIconText: {
       ...Fonts.S16W500,
       color: theme.white,

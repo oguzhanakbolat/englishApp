@@ -11,8 +11,6 @@ export default function AppTabs({ state }: BottomTabBarProps) {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme, inset), [theme, inset]);
 
-  console.log(state.routes[state.index].name);
-
   return (
     <View style={styles.container}>
       <View style={styles.tabs}>
@@ -41,7 +39,7 @@ export default function AppTabs({ state }: BottomTabBarProps) {
             style={
               state.routes[state.index].name === "lesson" ||
               state.routes[state.index].name === "level/[id]" ||
-              state.routes[state.index].name === "course/[id]"
+              state.routes[state.index].name === "cource/[id]"
                 ? styles.activeTab
                 : styles.tab
             }
@@ -52,27 +50,7 @@ export default function AppTabs({ state }: BottomTabBarProps) {
               color={
                 state.routes[state.index].name === "lesson" ||
                 state.routes[state.index].name === "level/[id]" ||
-                state.routes[state.index].name === "course/[id]"
-                  ? theme.primary
-                  : theme.white
-              }
-            />
-          </View>
-        </Pressable>
-
-        <Pressable onPress={() => router.push("/product")}>
-          <View
-            style={
-              state.routes[state.index].name === "product"
-                ? styles.activeTab
-                : styles.tab
-            }
-          >
-            <Octicons
-              name="graph"
-              size={24}
-              color={
-                state.routes[state.index].name === "product"
+                state.routes[state.index].name === "cource/[id]"
                   ? theme.primary
                   : theme.white
               }

@@ -1,8 +1,10 @@
 import { useTheme } from "@/hooks/use-theme";
-import { api } from "@/services/api";
+import { get } from "@/services/api";
 import { useUserStore } from "@/stores/useUserStore";
 import { FollowType } from "@/types";
 import { Foundation } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNetInfo } from "@react-native-community/netinfo";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -29,65 +31,86 @@ const LevelTemplate = () => {
   const { user } = useUserStore();
   const [lessons, setLessons] = useState<any[]>([]);
   const theme = useTheme();
+  const netInfo = useNetInfo();
+  const [loading, setLoading] = useState(false);
 
   const getLessons = async () => {
-    const [lessonsResponse, exercisesResponse] = await Promise.all([
-      api.get(`/cources?filters[level][name][$eq]=${id}&sort=name:asc`),
+    setLoading(true);
+    if (!netInfo.isConnected) {
+      const lessons = await AsyncStorage.getItem("lessons_" + id?.toString());
+      setLessons(lessons ? JSON.parse(lessons) : []);
+    } else {
+      const [lessonsResponse, exercisesResponse] = await Promise.all([
+        get(
+          `/cources?filters[level][name][$eq]=${id || 1}&filters[language][$eq]=${user?.language || "İngilizce"}&sort=name:asc`,
+        ),
 
-      api.get(
-        `/exercises?filters[language][$eq]=${user?.language}&filters[user][id][$eq]=${user?.id}&sort=createdAt:desc&pagination[pageSize]=1000`,
-      ),
-    ]);
+        get(
+          `/exercises?filters[language][$eq]=${user?.language || "İngilizce"}&filters[user][id][$eq]=${user?.id || 1}&sort=createdAt:desc&pagination[pageSize]=1000`,
+        ),
+      ]);
 
-    let newLessons: any[] = [];
-    let newExercises: any[] = [];
+      let newLessons: any[] = [];
+      let newExercises: any[] = [];
 
-    if (lessonsResponse.data.data) {
-      newLessons = lessonsResponse.data.data;
-    }
+      if (lessonsResponse.data.data) {
+        newLessons = lessonsResponse.data.data;
+      }
 
-    if (exercisesResponse.data.data) {
-      newExercises = exercisesResponse.data.data;
-    }
+      if (exercisesResponse.data.data) {
+        newExercises = exercisesResponse.data.data;
+      }
 
-    newLessons.sort((a: any, b: any) => Number(a.name) - Number(b.name));
+      newLessons.sort((a: any, b: any) => Number(a.name) - Number(b.name));
 
-    const newLessonsFull: any[] = [];
+      const newLessonsFull: any[] = [];
 
-    newLessons.forEach((lesson) => {
-      const exercises = newExercises.filter(
-        (exercise: any) =>
-          exercise.level === id && exercise.cource === lesson.name,
-      );
-
-      const controlExercises: any[] = [];
-
-      exercises.forEach((exercise: any) => {
-        const index = controlExercises.findIndex(
-          (controlExercise: any) => controlExercise.cource === exercise.cource,
+      newLessons.forEach((lesson) => {
+        const exercises = newExercises.filter(
+          (exercise: any) =>
+            exercise.level === id && exercise.cource === lesson.name,
         );
 
-        if (index === -1) {
-          controlExercises.push(exercise);
-        }
+        const controlExercises: any[] = [];
+
+        exercises.forEach((exercise: any) => {
+          const index = controlExercises.findIndex(
+            (controlExercise: any) =>
+              controlExercise.cource === exercise.cource,
+          );
+
+          if (index === -1) {
+            controlExercises.push(exercise);
+          }
+        });
+
+        newLessonsFull.push({
+          name: lesson.name,
+          exercises: controlExercises.length,
+          courses: lesson?.data?.length || 0,
+        });
       });
 
-      newLessonsFull.push({
-        name: lesson.name,
-        exercises: controlExercises.length,
-        courses: lesson?.data?.length || 0,
-      });
-    });
+      setLessons(newLessonsFull);
+      AsyncStorage.setItem(
+        "lessons_" + (id?.toString() || "1"),
+        JSON.stringify(newLessonsFull),
+      );
+    }
 
-    setLessons(newLessonsFull);
+    setLoading(false);
   };
 
   useEffect(() => {
     getLessons();
-  }, [id]);
+  }, [id, netInfo.isConnected]);
 
   return (
-    <Scroll title={`Level ${Number(id)}`}>
+    <Scroll
+      title={`Level ${Number(id)}`}
+      isLoading={loading}
+      isEmpty={lessons.length === 0}
+    >
       <View style={styles.container}>
         {lessons &&
           lessons.length > 0 &&
@@ -96,7 +119,7 @@ const LevelTemplate = () => {
               key={lesson.name}
               title={"Ders " + lesson.name}
               progress={
-                Number(user?.follows.cource) < Number(lesson.name)
+                Number(user?.follows?.cource || 1) < Number(lesson.name || 1)
                   ? 0
                   : (lesson.exercises / (lesson.courses || 1)) * 100
               }
@@ -105,14 +128,19 @@ const LevelTemplate = () => {
                   name="list"
                   size={32}
                   color={
-                    Number(user?.follows.cource) < Number(lesson.name)
+                    Number(user?.follows?.cource || 1) <
+                    Number(lesson.name || 1)
                       ? theme.white_50
                       : theme.white
                   }
                 />
               }
               locked={lockCalculate(id, lesson.name, user?.follows)}
-              onPress={() => router.push(`/(app)/(tabs)/cource/${lesson.name}`)}
+              onPress={() =>
+                router.push(
+                  `/(app)/(tabs)/cource/${id?.toString()}-${lesson.name}`,
+                )
+              }
             />
           ))}
       </View>

@@ -1,6 +1,7 @@
 import { Fonts } from "@/constants/fonts";
-import { ExerciseType, QuestionType } from "@/data";
 import { useTheme } from "@/hooks/use-theme";
+import { useUserStore } from "@/stores/useUserStore";
+import { ExerciseType, QuestionType, UserType } from "@/types";
 import pointCalculator, { PointCalculatorType } from "@/utils/pointCalculator";
 import { MaterialIcons } from "@expo/vector-icons";
 import { AudioPlayer, useAudioPlayer } from "expo-audio";
@@ -19,6 +20,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Point from "./Point";
+import ProgressBar from "./ProgressBar";
 
 const width = Dimensions.get("window").width;
 
@@ -43,6 +45,7 @@ const Write: FC<WriteType> = ({ exercise, level, lesson }) => {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme, inset), [theme, inset]);
   const router = useRouter();
+  const { user } = useUserStore();
   const [newExercise, setNewExercise] = useState<ExerciseType | null>(
     {} as ExerciseType,
   );
@@ -54,6 +57,7 @@ const Write: FC<WriteType> = ({ exercise, level, lesson }) => {
   const [points, setPoints] = useState<PointCalculatorType | null>(null);
   const [answer, setAnswer] = useState<any>();
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const correctAudio = useAudioPlayer(require("@/constants/correct.mp3"));
   const wrongAudio = useAudioPlayer(require("@/constants/wrong.mp3"));
@@ -88,6 +92,9 @@ const Write: FC<WriteType> = ({ exercise, level, lesson }) => {
   };
 
   const handleAnswer = () => {
+    if (isLoading) return;
+    setIsLoading(true);
+
     if (selectedAnswer != null || !selected?.trim()) return;
 
     setSelectedAnswer(selected ?? "");
@@ -139,6 +146,7 @@ const Write: FC<WriteType> = ({ exercise, level, lesson }) => {
 
     const t2 = setTimeout(() => {
       if (!isMountedRef.current) return;
+      setIsLoading(false);
       next();
     }, 2000);
 
@@ -147,7 +155,9 @@ const Write: FC<WriteType> = ({ exercise, level, lesson }) => {
 
   const next = () => {
     if (active === (newExercise?.questions?.length ?? 0) - 1) {
-      setPoints(pointCalculator(newExercise as ExerciseType, active));
+      setPoints(
+        pointCalculator(answer, level, lesson, exercise.id, user as UserType),
+      );
       setFinished(true);
     } else {
       const activeIndex = active + 1;
@@ -176,7 +186,7 @@ const Write: FC<WriteType> = ({ exercise, level, lesson }) => {
     setCorrect(null);
     setError(null);
     setActive(0);
-    router.push(`/level/${level}`);
+    router.push(`/cource/${level}-${lesson}`);
   };
 
   useEffect(() => {
@@ -190,6 +200,10 @@ const Write: FC<WriteType> = ({ exercise, level, lesson }) => {
     >
       <View style={styles.container}>
         <View style={styles.content}>
+          <ProgressBar
+            active={active}
+            questions={newExercise?.questions?.length ?? 0}
+          />
           <Text style={styles.descriptionText}>{exercise?.description}</Text>
 
           <View style={styles.questionContainer}>
@@ -267,9 +281,10 @@ const Write: FC<WriteType> = ({ exercise, level, lesson }) => {
         </View>
         <Point
           visible={finished}
-          points={points ?? { points: 0, totalPoints: 0, percentage: 0 }}
+          points={points ?? { points: 0, percentage: 0 }}
           onBack={handleBack}
           onNext={handleNext}
+          type="exercises"
         />
       </View>
     </KeyboardAvoidingView>

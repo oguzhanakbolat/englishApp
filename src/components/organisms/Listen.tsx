@@ -1,9 +1,12 @@
 import { Fonts } from "@/constants/fonts";
-import { ExerciseType } from "@/data";
 import { useTheme } from "@/hooks/use-theme";
+import { post } from "@/services/api";
+import { useUserStore } from "@/stores/useUserStore";
+import { ExerciseType } from "@/types";
+import { followCalculate } from "@/utils/followCalculate";
 import { AntDesign, FontAwesome5 } from "@expo/vector-icons";
-import { AudioSource, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
-import { FC, useEffect, useMemo, useState } from "react";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { FC, useEffect, useMemo, useRef, useState } from "react";
 import {
   Dimensions,
   FlatList,
@@ -27,16 +30,19 @@ type ListenType = {
   exercise: ExerciseType;
   level: number;
   lesson: number;
+  audioUri?: string | null;
 };
 
-const Listen: FC<ListenType> = ({ exercise, level, lesson }) => {
+const Listen: FC<ListenType> = ({ exercise, level, lesson, audioUri }) => {
   const inset = useSafeAreaInsets();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme, inset), [theme, inset]);
+  const { user } = useUserStore();
 
   const [timeType, setTimeType] = useState<"forward" | "backward">("backward");
+  const reportedTrackKeyRef = useRef<string | null>(null);
 
-  const player = useAudioPlayer(exercise.url as AudioSource);
+  const player = useAudioPlayer(null);
   const status = useAudioPlayerStatus(player);
 
   const progress = useSharedValue(0);
@@ -47,6 +53,13 @@ const Listen: FC<ListenType> = ({ exercise, level, lesson }) => {
   const isPlaying = status.playing;
   const duration = status.duration ?? 0;
   const currentTime = status.currentTime ?? 0;
+  const reachedHalfway = duration > 0 && currentTime >= duration / 2;
+  const trackKey = `${audioUri ?? ""}-${exercise.id}`;
+
+  useEffect(() => {
+    if (!audioUri) return;
+    player.replace({ uri: audioUri });
+  }, [audioUri]);
 
   useEffect(() => {
     const target = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -98,6 +111,38 @@ const Listen: FC<ListenType> = ({ exercise, level, lesson }) => {
 
     return [...m.split(""), ":", ...s.split("")];
   };
+
+  const setData = async () => {
+    if (user?.type === "outside" || user?.type === "inside") {
+      if (followCalculate(level, lesson, exercise.id + 1, user?.follows)) {
+        await post("/follows", {
+          data: {
+            cource: lesson,
+            exercise: exercise.id + 1,
+            level: level,
+          },
+        });
+      }
+
+      await post("/exercises", {
+        data: {
+          exercises: exercise.id.toString(),
+          level: level.toString(),
+          cource: lesson.toString(),
+          point: 1000,
+          user: user?.id,
+        },
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!reachedHalfway) return;
+    if (reportedTrackKeyRef.current === trackKey) return;
+
+    reportedTrackKeyRef.current = trackKey;
+    void setData();
+  }, [reachedHalfway, trackKey]);
 
   return (
     <View style={styles.container}>
@@ -236,10 +281,10 @@ const createStyles = (theme: ReturnType<typeof useTheme>, inset: Insets) =>
       marginBottom: 8,
     },
     whoText: {
-      ...Fonts.S16W600,
+      ...Fonts.S14W600,
     },
     textText: {
-      ...Fonts.S16W400,
+      ...Fonts.S14W400,
     },
     progressBarContainer: {
       width: width - 32,

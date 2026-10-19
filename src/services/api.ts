@@ -1,6 +1,12 @@
-import { useUserStore } from "@/stores/useUserStore";
 import { err, log } from "@/utils/logger";
 import axios, { AxiosError, AxiosResponse } from "axios";
+
+type UnauthorizedHandler = () => void;
+let onUnauthorized: UnauthorizedHandler | null = null;
+
+export const setUnauthorizedHandler = (handler: UnauthorizedHandler) => {
+  onUnauthorized = handler;
+};
 
 export const cdnURL = "https://english.akbolat.net";
 export const baseURL = "https://english.akbolat.net/api/";
@@ -59,15 +65,7 @@ export async function get(url = ""): Promise<{
       status: response.status === 200,
     };
   } catch (error) {
-    // burada iken 401 hatasına düşerse tokeni, kullanıcıyı logout et
-    if ((error as IApiError)?.response?.status === 401) {
-      useUserStore.getState().logout();
-    }
-    return {
-      data: null,
-      error: handleError(error as IApiError),
-      status: false,
-    };
+    return handleRequestError(error as IApiError);
   }
 }
 
@@ -79,19 +77,11 @@ export async function post(url = "", data: any = null) {
     return {
       data: response.data,
       error: null,
-      status: response.status < 400,
+      status: response.status === 200 || response.status === 201,
     };
   } catch (error) {
-    console.log({ error: error as IApiError });
-    if ((error as IApiError)?.response?.status === 401) {
-      useUserStore.getState().logout();
-    }
-
-    return {
-      data: null,
-      error: handleError(error as IApiError),
-      status: false,
-    };
+    console.log({ error: (error as any).response.data.error.details.errors });
+    return handleRequestError(error as IApiError);
   }
 }
 
@@ -106,15 +96,7 @@ export async function put(url = "", data: any = null) {
       status: response.status === 200,
     };
   } catch (error) {
-    if ((error as IApiError)?.response?.status === 401) {
-      useUserStore.getState().logout();
-    }
-
-    return {
-      data: null,
-      error: handleError(error as IApiError),
-      status: false,
-    };
+    return handleRequestError(error as IApiError);
   }
 }
 
@@ -128,15 +110,7 @@ export async function remove(url = "") {
       status: response.status === 200,
     };
   } catch (error) {
-    if ((error as IApiError)?.response?.status === 401) {
-      useUserStore.getState().logout();
-    }
-
-    return {
-      data: null,
-      error: handleError(error as IApiError),
-      status: false,
-    };
+    return handleRequestError(error as IApiError);
   }
 }
 
@@ -163,17 +137,21 @@ export async function postData(imageUri: string, fileName?: string) {
 
     return { data: response.data, error: null, status: true };
   } catch (error) {
-    if ((error as IApiError)?.response?.status === 401) {
-      useUserStore.getState().logout();
-    }
-
-    return {
-      data: null,
-      error: handleError(error as IApiError),
-      status: false,
-    };
+    return handleRequestError(error as IApiError);
   }
 }
+
+const handleRequestError = (error: IApiError) => {
+  if (error?.response?.status === 401) {
+    onUnauthorized?.();
+  }
+
+  return {
+    data: null,
+    error: handleError(error),
+    status: false,
+  };
+};
 
 export function handleError(error: IApiError): string {
   if (error?.status === 401) {
@@ -184,6 +162,14 @@ export function handleError(error: IApiError): string {
 
   if (typeof data === "string" && data.trim().length > 0) {
     return data;
+  }
+
+  const details = data?.error?.details?.errors;
+  if (Array.isArray(details) && details.length > 0) {
+    const first = details.find((item: { message?: string }) => item?.message) || details[0];
+    if (typeof first?.message === "string" && first.message.trim().length > 0) {
+      return first.message;
+    }
   }
 
   if (data?.error?.message && typeof data.error.message === "string") {

@@ -7,9 +7,8 @@ export default function AppLayout() {
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="lesson" />
         <Stack.Screen name="onlesson" />
-        <Stack.Screen name="course" />
+        <Stack.Screen name="word" />
       </Stack>
     </>
   );

@@ -5,6 +5,7 @@ import { useAppFonts } from "@/constants/fonts";
 import { initI18n } from "@/i18n";
 
 import { useUserStore } from "@/stores/useUserStore";
+import { useNetInfo } from "@react-native-community/netinfo";
 import { setAudioModeAsync } from "expo-audio";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -37,6 +38,7 @@ export default function RootLayout() {
   const [isSplashFinished, setIsSplashFinished] = useState(false);
   const [isI18nReady, setIsI18nReady] = useState(false);
   const [startApp, setStartApp] = useState(false);
+  const netInfo = useNetInfo();
 
   useEffect(() => {
     initI18n().finally(() => setIsI18nReady(true));
@@ -59,13 +61,13 @@ export default function RootLayout() {
 
   useEffect(() => {
     SplashScreen.hideAsync().catch(() => {});
-    authenticatedControl();
+    authenticatedControl(netInfo.isConnected ?? false);
     setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: false,
       interruptionMode: "duckOthers",
     }).catch(() => {});
-  }, []);
+  }, [netInfo.isConnected]);
 
   if (
     ((!fontsLoaded && !fontsError) || !isI18nReady || !startApp) &&

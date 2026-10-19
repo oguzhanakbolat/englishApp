@@ -2,7 +2,7 @@ import { Fonts } from "@/constants/fonts";
 import { useTheme } from "@/hooks/use-theme";
 import { Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import {
   Dimensions,
   Insets,
@@ -15,16 +15,30 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
-const Header = ({ title }: { title: string }) => {
+const Header = ({
+  title,
+  onBackControl,
+}: {
+  title: string;
+  onBackControl?: () => void;
+}) => {
   const inset = useSafeAreaInsets();
   const theme = useTheme();
   const router = useRouter();
   const styles = useMemo(() => createStyles(theme, inset), [theme, inset]);
 
+  const handleBack = () => {
+    if (onBackControl) {
+      onBackControl();
+    } else {
+      router.back();
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.button} onPress={handleBack}>
           <Feather name="arrow-left" size={24} color={theme.white} />
         </TouchableOpacity>
         <Text style={styles.text}>{title}</Text>

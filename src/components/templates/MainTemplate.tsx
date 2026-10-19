@@ -1,10 +1,12 @@
 import { Fonts } from "@/constants/fonts";
 import IconBg from "@/constants/images/iconbg";
 import { useTheme } from "@/hooks/use-theme";
-import { get } from "@/services/api";
-import { useUserStore } from "@/stores/useUserStore";
+import { get, put } from "@/services/api";
+import { getUserImageUrl, useUserStore } from "@/stores/useUserStore";
 import { Feather, FontAwesome5, FontAwesome6 } from "@expo/vector-icons";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useNetInfo } from "@react-native-community/netinfo";
 
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -25,6 +27,7 @@ const { width } = Dimensions.get("window");
 const MainTemplate = () => {
   const inset = useSafeAreaInsets();
   const theme = useTheme();
+  const netInfo = useNetInfo();
   const styles = useMemo(() => createStyles(theme, inset), [theme, inset]);
   const router = useRouter();
   const { user } = useUserStore();
@@ -39,11 +42,31 @@ const MainTemplate = () => {
   });
 
   const getData = async () => {
-    if (user?.follows?.level) {
+    if (netInfo.isConnected && !user?.language) {
+      await put(`/users/${user?.id}`, {
+        language: "İngilizce",
+      });
+    }
+
+    if (!netInfo.isConnected) {
+      const exercises = await AsyncStorage.getItem("exercises");
+      const maxPoint = await AsyncStorage.getItem("maxPoint");
+      const level = await AsyncStorage.getItem("level");
+      const wordList = await AsyncStorage.getItem("wordList");
+      const patternList = await AsyncStorage.getItem("patternList");
+
+      setExercises(exercises ? JSON.parse(exercises) : []);
+      setMaxPoint(maxPoint ? Number(maxPoint) : 0);
+      setLevel(
+        level ? JSON.parse(level) : { cources: [], totalLesson: 0, lesson: 0 },
+      );
+      setWordList(wordList ? JSON.parse(wordList) : []);
+      setPatternList(patternList ? JSON.parse(patternList) : []);
+    } else if (user?.follows?.level) {
       const [levelResponse, exerciseResponse, wordListesponse] =
         await Promise.all([
           get(
-            `/levels?filters[name][$eq]=${user?.follows?.level}&populate=cources`,
+            `/levels?filters[name][$eq]=${user?.follows?.level || 1}&populate=cources`,
           ),
           get(`/exercises?filters[user][id][$eq]=${user?.id}`),
           get(
@@ -51,7 +74,7 @@ const MainTemplate = () => {
           ),
         ]);
 
-      if (exerciseResponse.data.data) {
+      if (exerciseResponse?.data?.data) {
         const newExercises: any[] = [];
 
         exerciseResponse.data.data.filter((exercise: any) => {
@@ -119,8 +142,6 @@ const MainTemplate = () => {
             new Date(a.date).getTime() - new Date(b.date).getTime(),
         );
 
-        setMaxPoint(point);
-
         newExercises.forEach((exercise) => {
           if (exercise.point > point) {
             point = exercise.point;
@@ -129,17 +150,21 @@ const MainTemplate = () => {
 
         setMaxPoint(point);
         setExercises(newExercises);
+
+        AsyncStorage.setItem("exercises", JSON.stringify(newExercises));
+        AsyncStorage.setItem("maxPoint", point.toString());
       }
 
-      if (levelResponse.data.data && levelResponse.data.data[0].cources) {
+      if (levelResponse?.data?.data && levelResponse.data.data?.[0]?.cources) {
         setLevel({
           cources: levelResponse.data.data[0].cources,
           totalLesson: levelResponse.data.data[0].cources.length,
           name: levelResponse.data.data[0].name,
         });
+        AsyncStorage.setItem("level", JSON.stringify(level));
       }
 
-      if (wordListesponse.data.data) {
+      if (wordListesponse?.data?.data) {
         const newWordList: any[] = [];
         const newPatternList: any[] = [];
 
@@ -150,21 +175,27 @@ const MainTemplate = () => {
 
         setWordList(newWordList);
         setPatternList(newPatternList);
+
+        AsyncStorage.setItem("wordList", JSON.stringify(newWordList));
+        AsyncStorage.setItem("patternList", JSON.stringify(newPatternList));
       }
     }
   };
 
   useEffect(() => {
     getData();
-  }, [user?.follows?.level]);
+  }, [user?.follows?.level, netInfo.isConnected]);
 
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
         <View style={styles.headerContent}>
           <View style={styles.imageContainer}>
-            {user?.image ? (
-              <Image source={{ uri: user.image.url }} style={styles.image} />
+            {getUserImageUrl(user?.image) ? (
+              <Image
+                source={{ uri: getUserImageUrl(user?.image) as string }}
+                style={styles.image}
+              />
             ) : (
               <Text style={styles.imageText}>
                 {(user?.username?.charAt(0) || "") +
@@ -174,7 +205,7 @@ const MainTemplate = () => {
           </View>
           <View style={styles.name}>
             <Text style={styles.nameText}>{user?.username}</Text>
-            <Text style={styles.emailText}>{user?.email}</Text>
+            <Text style={styles.emailText}>- {user?.email}</Text>
           </View>
         </View>
         <View style={styles.headerRight}>
@@ -204,10 +235,10 @@ const MainTemplate = () => {
               <View>
                 <View style={styles.textLevelContainer}>
                   <Text style={styles.titleLevel}>
-                    Level {user?.follows?.level}
+                    Level {user?.follows?.level || 1}
                   </Text>
                   <Text style={styles.textLevel}>
-                    {user?.follows?.cource} / {level?.totalLesson}
+                    {user?.follows?.cource || 1} / {level?.totalLesson || 1}
                   </Text>
                 </View>
                 <View style={styles.listContainer}>
@@ -237,7 +268,11 @@ const MainTemplate = () => {
           <View style={styles.row}>
             <TouchableOpacity
               style={[styles.itemCard, { backgroundColor: theme.secondary_20 }]}
-              onPress={() => router.push(`/cource/${user?.follows?.cource}`)}
+              onPress={() =>
+                router.push(
+                  `/cource/${user?.follows?.level || 1}-${user?.follows?.cource || 1}`,
+                )
+              }
             >
               <Text style={[styles.itemCardTitle, { color: theme.secondary }]}>
                 Derse Devam Et
@@ -260,6 +295,7 @@ const MainTemplate = () => {
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.itemCard, { backgroundColor: theme.success_20 }]}
+              onPress={() => (wordList.length > 0 ? router.push("/word") : {})}
             >
               <Text style={[styles.itemCardTitle, { color: theme.success }]}>
                 Kelime Çalış
